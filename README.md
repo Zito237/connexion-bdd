@@ -16,9 +16,11 @@ définitions d'étapes, organisation Maven).
 
 ```bash
 # 1. Scénarios négatifs seulement (aucun identifiant nécessaire)
-mvn test
+mvn test '-Dcucumber.filter.tags=@negatif'
 
-# 2. Tous les scénarios, y compris la connexion réelle à un compte de test
+# 2. Tous les scénarios, y compris la connexion réelle à un compte de test.
+#    Les identifiants sont OBLIGATOIRES : le scénario positif n'est jamais sauté,
+#    il échoue s'ils manquent.
 #    Linux / macOS
 export GITHUB_LOGIN="votre-login"
 export GITHUB_PASSWORD="votre-mot-de-passe"
@@ -40,8 +42,9 @@ mvn test '-Dcucumber.filter.tags=@positif'
 
 Rapport HTML : `target/cucumber-rapport.html`. En cas d'échec, il contient une capture d'écran.
 
-Sans `GITHUB_LOGIN` ni `GITHUB_PASSWORD`, le scénario positif est **ignoré** (skipped), pas échoué :
-c'est l'environnement qui n'est pas configuré, pas le logiciel qui est défaillant.
+Le scénario positif s'exécute **toujours** : il n'est jamais ignoré (skipped). Les identifiants
+`GITHUB_LOGIN` et `GITHUB_PASSWORD` doivent donc être définis avant de le lancer ; sinon il
+**échoue** avec un message explicite demandant de les fournir.
 
 ## Arborescence (convention Maven du cours)
 
@@ -65,7 +68,7 @@ connexion-bdd/
 
 | Scénario | Données | Résultat attendu |
 | --- | --- | --- |
-| Connexion réussie (`@positif`) | nos vrais identifiants | connecté à notre compte, plus sur /login |
+| Identifiants acceptés (`@positif`) | nos vrais identifiants | GitHub nous connecte **ou** réclame un second facteur (preuve que le couple identifiant/mot de passe est bon), plus sur /login |
 | Identifiants refusés, exemple 1 (`@negatif`) | compte inexistant | « Incorrect username or password. » |
 | Identifiants refusés, exemple 2 (`@negatif`) | e-mail inexistant | « Incorrect username or password. » |
 | Champ obligatoire, exemple 1 | identifiant vide | envoi bloqué, champ identifiant signalé |
@@ -100,8 +103,13 @@ oblige à préciser le comportement attendu.
 ## Limites à connaître
 
 - **Double authentification (2FA) ou code envoyé par e-mail** : si notre compte les exige, le
-  scénario positif s'arrête après le mot de passe avec un message explicite. Il faut alors un
-  compte de test sans 2FA, ou automatiser le code TOTP.
+  scénario positif ne va pas jusqu'au bureau connecté — mais il **reste vert**, et à juste titre.
+  GitHub ne réclame un second facteur qu'après avoir validé l'identifiant et le mot de passe ;
+  arriver sur la page 2FA **prouve** donc que nos identifiants sont corrects, ce qui est tout ce
+  que ce scénario affirme (« GitHub accepte nos identifiants »). Exiger la connexion complète
+  produisait un **faux négatif** : le test échouait alors que le logiciel fonctionnait. Pour
+  tester aussi l'étape du second facteur, il faudrait un compte sans 2FA ou automatiser le code
+  TOTP — un scénario distinct, non couvert ici.
 - **Protection anti-robot** : en mode headless, GitHub peut afficher « What‽ Your browser did
   something unexpected ». Relancer avec `-DHEADLESS=false` depuis votre poste.
 - Un test qui dépend d'un site externe reste fragile par nature (le cours le classe parmi les

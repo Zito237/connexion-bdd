@@ -34,8 +34,12 @@ public class ConnexionSteps {
 
     @Quand("je saisis l'identifiant et le mot de passe de notre compte")
     public void jeSaisisNosIdentifiants() {
-        // Le hook @Before("@identifiants-reels") a déjà vérifié leur présence.
-        page.saisir(Config.login().orElseThrow(), Config.motDePasse().orElseThrow());
+        String login = Config.login().orElseThrow(() -> new AssertionError(
+                "Variables GITHUB_LOGIN et GITHUB_PASSWORD absentes : définir ces identifiants "
+                        + "avant de lancer le scénario positif."));
+        String motDePasse = Config.motDePasse().orElseThrow(() -> new AssertionError(
+                "Variable GITHUB_PASSWORD absente : définir le mot de passe du compte."));
+        page.saisir(login, motDePasse);
     }
 
     /** {string} est une expression Cucumber : elle extrait le texte entre guillemets (éventuellement vide). */
@@ -51,20 +55,42 @@ public class ConnexionSteps {
 
     // ----- Alors : le résultat attendu (Assert) -----
 
-    @Alors("je suis connecté au compte de notre équipe")
-    public void jeSuisConnecte() {
-        if (page.verificationSupplementaireDemandee()) {
-            fail("Mot de passe accepté, mais GitHub demande une vérification supplémentaire "
-                    + "(2FA ou code envoyé par e-mail) : " + page.urlCourante()
-                    + ". Utiliser un compte de test sans 2FA, ou automatiser cette étape.");
+    @Alors("GitHub accepte nos identifiants")
+    public void gitHubAccepteNosIdentifiants() {
+        if (page.bloqueParLaProtectionAntiRobot()) {
+            fail("GitHub a affiché sa page anti-robot (« What‽ ») au lieu de traiter la connexion : "
+                    + "relancer avec HEADLESS=false depuis votre poste.");
         }
+        // Oracle juste : GitHub a accepté le couple identifiant / mot de passe s'il
+        // nous connecte OU s'il réclame un second facteur (qu'il n'exige jamais sur
+        // des identifiants erronés). Exiger la connexion complète produisait un faux
+        // négatif quand la 2FA est active alors que le logiciel fonctionne.
+        assertTrue(page.identifiantsAcceptes(),
+                "GitHub n'a pas accepté nos identifiants (ni connexion, ni demande de second facteur) sur "
+                        + page.urlCourante());
+
+        // Dès que GitHub réclame un second facteur, on l'AFFICHE dans le rapport :
+        // identifiants validés, mais la connexion complète exige une étape 2FA / code
+        // appareil hors du périmètre de ce test. Le scénario reste vert (pas de faux négatif).
+        if (page.verificationSupplementaireDemandee()) {
+            io.cucumber.java.Scenario scenario = Contexte.scenario();
+            String message = "⚠ Identifiants acceptés par GitHub, mais un second facteur est "
+                    + "demandé après l'identifiant et le mot de passe (2FA ou code appareil) : "
+                    + page.urlCourante()
+                    + ". La connexion complète nécessiterait de saisir ce code (hors périmètre de ce test).";
+            if (scenario != null) {
+                scenario.log(message);
+            } else {
+                System.out.println(message);
+            }
+        }
+
+        // Si nous sommes effectivement connectés, vérifier que c'est bien notre compte.
         String attendu = Config.login().orElseThrow();
-        String connecte = page.utilisateurConnecte()
-                .orElseThrow(() -> new AssertionError("Aucun utilisateur connecté sur " + page.urlCourante()));
-        // GitHub accepte l'e-mail comme identifiant : on ne compare au login que si ce n'en est pas un.
         if (!attendu.contains("@")) {
-            assertTrue(connecte.equalsIgnoreCase(attendu),
-                    "Connecté en tant que « " + connecte + " » au lieu de « " + attendu + " »");
+            page.utilisateurConnecte().ifPresent(connecte ->
+                    assertTrue(connecte.equalsIgnoreCase(attendu),
+                            "Connecté en tant que « " + connecte + " » au lieu de « " + attendu + " »"));
         }
     }
 

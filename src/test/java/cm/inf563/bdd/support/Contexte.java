@@ -33,4 +33,20 @@ public final class Contexte {
         NAVIGATEUR.remove();
         return driver;
     }
+
+    // ----- scénario courant : sert à écrire des messages dans le rapport Cucumber -----
+
+    private static final ThreadLocal<io.cucumber.java.Scenario> SCENARIO = new ThreadLocal<>();
+
+    public static io.cucumber.java.Scenario scenario() {
+        return SCENARIO.get();
+    }
+
+    static void definirScenario(io.cucumber.java.Scenario scenario) {
+        SCENARIO.set(scenario);
+    }
+
+    static void oublierScenario() {
+        SCENARIO.remove();
+    }
 }

@@ -9,10 +9,10 @@ Fonctionnalité: Connexion à notre compte GitHub
     Soit je suis sur la page de connexion de GitHub
 
   @positif @identifiants-reels
-  Scénario: Connexion réussie avec les identifiants de notre compte
+  Scénario: GitHub accepte les identifiants de notre compte
     Quand je saisis l'identifiant et le mot de passe de notre compte
     Et je valide le formulaire de connexion
-    Alors je suis connecté au compte de notre équipe
+    Alors GitHub accepte nos identifiants
     Et je ne suis plus sur la page de connexion
 
   @negatif

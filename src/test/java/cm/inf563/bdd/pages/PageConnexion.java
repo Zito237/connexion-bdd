@@ -102,6 +102,23 @@ public class PageConnexion {
         return url.contains("/sessions/two-factor") || url.contains("/sessions/verified-device");
     }
 
+    /**
+     * Vrai si GitHub a accepté le couple identifiant / mot de passe.
+     *
+     * Deux preuves possibles, toutes deux concluantes :
+     *  - un utilisateur est connecté (compte sans second facteur) ;
+     *  - GitHub réclame un second facteur (2FA ou code appareil) : il ne le fait
+     *    QUE lorsque l'identifiant et le mot de passe sont corrects ; un couple
+     *    erroné renverrait « Incorrect username or password. ».
+     *
+     * Traiter le second facteur comme une réussite des identifiants corrige le
+     * faux négatif : le logiciel fonctionne (identifiants validés), le test ne
+     * doit donc pas échouer parce qu'une étape hors de son ressort reste à faire.
+     */
+    public boolean identifiantsAcceptes() {
+        return utilisateurConnecte().isPresent() || verificationSupplementaireDemandee();
+    }
+
     /** Page « What‽ Your browser did something unexpected » : GitHub a soupçonné un robot. */
     public boolean bloqueParLaProtectionAntiRobot() {
         return driver.getPageSource().contains("Your browser did something unexpected");

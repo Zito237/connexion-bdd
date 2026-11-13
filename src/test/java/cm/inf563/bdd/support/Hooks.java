@@ -3,7 +3,6 @@ package cm.inf563.bdd.support;
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
 import io.cucumber.java.Scenario;
-import org.junit.jupiter.api.Assumptions;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
@@ -20,25 +19,13 @@ import org.openqa.selenium.firefox.FirefoxOptions;
  */
 public class Hooks {
 
-    /**
-     * Le scénario positif a besoin de nos vrais identifiants. S'ils ne sont pas
-     * fournis, le scénario est IGNORÉ (skipped), pas échoué : ce n'est pas un
-     * défaut du logiciel, c'est l'environnement qui n'est pas configuré.
-     * order = 0 : exécuté avant l'ouverture du navigateur.
-     */
-    @Before(value = "@identifiants-reels", order = 0)
-    public void exigerIdentifiants() {
-        Assumptions.assumeTrue(Config.login().isPresent() && Config.motDePasse().isPresent(),
-                "Variables GITHUB_LOGIN et GITHUB_PASSWORD absentes : scénario ignoré");
+    @Before(order = 0)
+    public void memoriserScenario(Scenario scenario) {
+        Contexte.definirScenario(scenario);
     }
 
     @Before(order = 1)
-    public void ouvrirNavigateur(Scenario scenario) {
-        if (scenario.getSourceTagNames().contains("@identifiants-reels")
-                && (Config.login().isEmpty() || Config.motDePasse().isEmpty())) {
-            return;
-        }
-
+    public void ouvrirNavigateur() {
         WebDriver navigateur = switch (Config.navigateur()) {
             case "chrome" -> {
                 ChromeOptions options = new ChromeOptions();
@@ -90,6 +77,7 @@ public class Hooks {
             }
         } finally {
             driver.quit();
+            Contexte.oublierScenario();
         }
     }
 }
